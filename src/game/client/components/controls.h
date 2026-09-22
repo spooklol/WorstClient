@@ -28,10 +28,14 @@ public:
 	vec2 m_aMousePos[NUM_DUMMIES];
 	vec2 m_aMousePosOnAction[NUM_DUMMIES];
 	vec2 m_aTargetPos[NUM_DUMMIES];
+	// smoothing target and remaining steps for recoil movement
+	vec2 m_aMouseMoveTarget[NUM_DUMMIES];
+	int m_aMouseMoveSteps[NUM_DUMMIES];
 
 	EMouseInputType m_aMouseInputType[NUM_DUMMIES];
 
 	int m_aAmmoCount[NUM_WEAPONS];
+	int m_LastAttackTick;
 
 	int64_t m_LastSendTime;
 	CNetObj_PlayerInput m_aInputData[NUM_DUMMIES];

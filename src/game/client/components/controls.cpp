@@ -1,5 +1,4 @@
-/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
-/* If you are missing that file, acquire a complete release at teeworlds.com.                */
+// WorstClient: realistic gun system
 #include "controls.h"
 
 #include <base/dbg.h>
@@ -30,9 +29,13 @@ CControls::CControls()
 	std::fill(std::begin(m_aMousePosOnAction), std::end(m_aMousePosOnAction), vec2(0.0f, 0.0f));
 	std::fill(std::begin(m_aTargetPos), std::end(m_aTargetPos), vec2(0.0f, 0.0f));
 	std::fill(std::begin(m_aMouseInputType), std::end(m_aMouseInputType), EMouseInputType::ABSOLUTE);
+	m_LastAttackTick = 0;
+	std::fill(std::begin(m_aMouseMoveTarget), std::end(m_aMouseMoveTarget), vec2(0.0f, 0.0f));
+	std::fill(std::begin(m_aMouseMoveSteps), std::end(m_aMouseMoveSteps), 0);
 	for(int Slot = 0; Slot < NUM_WEAPONS - 1; ++Slot)
 		m_aWeaponOrder[Slot] = Slot;
 }
+
 
 void CControls::OnReset()
 {
@@ -306,14 +309,53 @@ int CControls::SnapInput(int *pData)
 
 	m_aLastData[g_Config.m_ClDummy].m_PlayerFlags = m_aInputData[g_Config.m_ClDummy].m_PlayerFlags;
 
-	if(((m_aInputData[g_Config.m_ClDummy].m_Fire & 1) != 0) && ((m_aLastData[g_Config.m_ClDummy].m_Fire & 1) == 0))
+
+	if(GameClient()->m_Snap.m_pLocalCharacter)
 	{
-		// makes gun more realistic
-		float MaxMove = GetMaxMouseDistance() * 0.05f;
-		float Angle = random_float() * 2.0f * 3.14159265358979323846f;
-		m_aMousePos[g_Config.m_ClDummy] += vec2(std::cos(Angle), std::sin(Angle)) * MaxMove;
+		const int AttackTick = GameClient()->m_Snap.m_pLocalCharacter->m_AttackTick;
+		if(AttackTick != m_LastAttackTick)
+		{
+			float MaxPercent = 0.05f;
+			const int Weapon = GameClient()->m_Snap.m_pLocalCharacter->m_Weapon;
+			switch(Weapon)
+			{
+			case WEAPON_SHOTGUN:
+				MaxPercent = 0.10f;
+				break;
+			case WEAPON_GRENADE:
+				MaxPercent = 0.15f;
+				break;
+			case WEAPON_HAMMER:
+				MaxPercent = 0.03f;
+				break;
+			case WEAPON_LASER:
+				MaxPercent = 0.06f;
+				break;
+			default:
+				MaxPercent = 0.05f;
+				break;
+			}
+
+			const float Percent = random_float() * MaxPercent;
+			const float MaxMove = GetMaxMouseDistance() * Percent;
+			const float Angle = random_float() * 2.0f * 3.14159265358979323846f;
+			const vec2 Move = vec2(std::cos(Angle), std::sin(Angle)) * MaxMove;
+			m_aMouseMoveTarget[g_Config.m_ClDummy] = Move;
+			m_aMouseMoveSteps[g_Config.m_ClDummy] = 2;
+
+			m_LastAttackTick = AttackTick;
+		}
+	}
+
+	if(m_aMouseMoveSteps[g_Config.m_ClDummy] > 0)
+	{
+		vec2 Step = m_aMouseMoveTarget[g_Config.m_ClDummy] / (float)m_aMouseMoveSteps[g_Config.m_ClDummy];
+		m_aMousePos[g_Config.m_ClDummy] += Step;
+		m_aMouseMoveTarget[g_Config.m_ClDummy] -= Step;
+		m_aMouseMoveSteps[g_Config.m_ClDummy]--;
 		ClampMousePos();
 	}
+
 
 	// we freeze the input if chat or menu is activated
 	if(!(m_aInputData[g_Config.m_ClDummy].m_PlayerFlags & PLAYERFLAG_PLAYING))
