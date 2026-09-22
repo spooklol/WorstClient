@@ -2798,6 +2798,7 @@ if(CLIENT)
     ui_rect.h
     ui_scrollregion.cpp
     ui_scrollregion.h
+    worstclient_math.h
     # tidy-alphabetical-end
   )
   set_src(GAME_EDITOR GLOB_RECURSE src/game/editor

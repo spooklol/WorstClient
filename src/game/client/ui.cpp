@@ -16,6 +16,7 @@
 #include <engine/keys.h>
 #include <engine/shared/config.h>
 
+#include <game/client/worstclient_math.h>
 #include <game/localization.h>
 
 #include <limits>
@@ -534,7 +535,7 @@ int CUi::DoButtonLogic(const void *pId, int Checked, const CUIRect *pRect, const
 		{
 			if(Inside && Checked >= 0)
 			{
-				if(rand() % 100 >= 50)
+				if(random_float() >= WorstnessInterpolation(0.0f, 0.98f, EASE_LINEAR))
 					ReturnValue = 1 + m_ActiveButtonLogicButton;
 			}
 			SetActiveItem(nullptr);
@@ -582,7 +583,7 @@ int CUi::DoDraggableButtonLogic(const void *pId, int Checked, const CUIRect *pRe
 			{
 				if(Inside && Checked >= 0)
 				{
-					if(rand() % 100 >= 50)
+					if(random_float() >= WorstnessInterpolation(0.0f, 0.98f, EASE_LINEAR))
 						*pClicked = true;
 				}
 				SetActiveItem(nullptr);
@@ -1575,6 +1576,27 @@ bool CUi::DoScrollbarOption(const void *pId, int *pOption, const CUIRect *pRect,
 		return false;
 	}
 
+	if(*pOption != Value)
+	{
+		*pOption = Value;
+		return true;
+	}
+	return false;
+}
+
+bool CUi::DoScrollbarOptionCustom(const void *pId, int *pOption, const CUIRect *pRect, const char *pLabel, int Min, int Max)
+{
+	// The label and the scrollbar each get half of the rect, so the scrollbar stays in place no matter
+	// how long the label grows.
+	CUIRect Label, ScrollBar;
+	pRect->VSplitMid(&Label, &ScrollBar, std::min(10.0f, pRect->w * 0.05f));
+
+	const float FontSize = Label.h * CUi::ms_FontmodHeight * 0.8f;
+	DoLabel(&Label, pLabel, FontSize, TEXTALIGN_ML);
+
+	const float Range = Max - Min;
+	const float RelativeValue = Range == 0.0f ? 0.0f : (std::clamp(*pOption, Min, Max) - Min) / Range;
+	const int Value = std::round(Min + DoScrollbarH(pId, &ScrollBar, RelativeValue) * Range);
 	if(*pOption != Value)
 	{
 		*pOption = Value;

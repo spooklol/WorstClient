@@ -8,6 +8,7 @@
 #include <base/vmath.h>
 
 #include <engine/client.h>
+#include <engine/keys.h>
 #include <engine/shared/config.h>
 
 #include <generated/protocol.h>
@@ -17,6 +18,7 @@
 #include <game/client/components/menus.h>
 #include <game/client/components/scoreboard.h>
 #include <game/client/gameclient.h>
+#include <game/client/worstclient_math.h>
 #include <game/collision.h>
 #include <game/localization.h>
 
@@ -43,6 +45,9 @@ void CControls::OnReset()
 	ResetInput(1);
 
 	std::fill(std::begin(m_aAmmoCount), std::end(m_aAmmoCount), 0);
+
+	m_MouseDrift = vec2(0.0f, 0.0f);
+	m_MouseDriftTarget = vec2(0.0f, 0.0f);
 
 	m_LastSendTime = 0;
 }
@@ -273,6 +278,27 @@ void CControls::OnMessage(int Msg, void *pRawMsg)
 	}
 }
 
+bool CControls::OnInput(const IInput::CEvent &Event)
+{
+	if((Event.m_Flags & IInput::FLAG_PRESS) && !(Event.m_Flags & IInput::FLAG_REPEAT) &&
+		(Event.m_Key == KEY_LSHIFT || Event.m_Key == KEY_RSHIFT))
+	{
+		const int64_t Now = time_get();
+		if(m_ShiftPresses == 0 || Now - m_FirstShiftPress > 2 * time_freq())
+		{
+			m_ShiftPresses = 1;
+			m_FirstShiftPress = Now;
+		}
+		else if(++m_ShiftPresses >= 5)
+		{
+			m_ShiftPresses = 0;
+			GameClient()->m_Menus.PopupMessage(Localize("Sticky keys"), Localize("Sticky keys are not supported yet"), Localize("Ok"));
+		}
+	}
+
+	return false;
+}
+
 int CControls::SnapInput(int *pData)
 {
 	// update player state
@@ -453,6 +479,17 @@ int CControls::SnapInput(int *pData)
 			m_aInputData[g_Config.m_ClDummy].m_TargetY = (int)(std::cos(t * 3) * 100.0f);
 		}
 
+		CNetObj_PlayerInput &Input = m_aInputData[g_Config.m_ClDummy];
+		const CNetObj_PlayerInput &LastInput = m_aLastData[g_Config.m_ClDummy];
+
+		const float FailureRate = WorstnessInterpolation(0.0, 0.98, EASE_CUBIC_IN);
+
+		if(Input.m_Jump && !LastInput.m_Jump && random_float() < FailureRate)
+			Input.m_Jump = 0;
+
+		if(CountInput(LastInput.m_Fire, Input.m_Fire).m_Presses && random_float() < FailureRate)
+			Input.m_Fire = LastInput.m_Fire;
+
 		// check if we need to send input
 		Send = Send || m_aInputData[g_Config.m_ClDummy].m_Direction != m_aLastData[g_Config.m_ClDummy].m_Direction;
 		Send = Send || m_aInputData[g_Config.m_ClDummy].m_Jump != m_aLastData[g_Config.m_ClDummy].m_Jump;
@@ -503,6 +540,17 @@ void CControls::OnRender()
 				m_aInputData[g_Config.m_ClDummy].m_WantedWeapon = Weapon + 1;
 		}
 	}
+
+	constexpr float DriftInertia = 0.25f;
+	float DriftStep = WorstnessInterpolation(0.0f, 16.0f, EASE_LINEAR);
+	if((Client()->GameTick(g_Config.m_ClDummy) / 2 != m_MouseDriftTick) && DriftInertia > 1e-4f) // eps icu!!!
+	{
+		m_MouseDriftTick = Client()->GameTick(g_Config.m_ClDummy) / 2;
+		m_MouseDriftTarget += vec2(random_float(-DriftStep, DriftStep), random_float(-DriftStep, DriftStep));
+	}
+	const vec2 PrevDrift = m_MouseDrift;
+	m_MouseDrift += (m_MouseDriftTarget - m_MouseDrift) * std::clamp(Client()->RenderFrameTime() / DriftInertia, 0.0f, 1.0f);
+	m_aMousePos[g_Config.m_ClDummy] += m_MouseDrift - PrevDrift;
 
 	// update target pos
 	if(GameClient()->m_Snap.m_pGameInfoObj && !GameClient()->m_Snap.m_SpecInfo.m_Active)

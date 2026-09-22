@@ -245,6 +245,7 @@ MACRO_CONFIG_INT(UiUnreadNews, ui_unread_news, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG
 MACRO_CONFIG_INT(GfxNoclip, gfx_noclip, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Disable clipping")
 
 // WorstClient
+MACRO_CONFIG_INT(WcWorstness, wc_worstness, 5000, 0, 10000, CFGFLAG_CLIENT | CFGFLAG_SAVE, "How bad WorstClient behaves (0 = not bad at all, 10000 = as bad as it gets)")
 MACRO_CONFIG_INT(WcFinishProtection, wc_finish_protection, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Automatically kill yourself when at risk of finishing a race")
 MACRO_CONFIG_INT(WcShowOff, wc_show_off, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Append \" ... I use WorstClient btw\" to chat messages")
 MACRO_CONFIG_INT(WcTrueKillProtection, wc_true_kill_protection, 0, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Fall back to typing /kill in chat when the server blocks a kill")
@@ -736,7 +737,7 @@ MACRO_CONFIG_INT(ClPredictFreeze, cl_predict_freeze, 1, 0, 2, CFGFLAG_CLIENT | C
 MACRO_CONFIG_INT(ClShowNinja, cl_show_ninja, 1, 0, 1, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show ninja skin")
 MACRO_CONFIG_INT(ClShowHookCollOther, cl_show_hook_coll_other, 1, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show other players' hook collision line (2 to always show)")
 MACRO_CONFIG_INT(ClShowHookCollOwn, cl_show_hook_coll_own, 1, 0, 2, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Show own players' hook collision line (2 to always show)")
-MACRO_CONFIG_INT(ClHookCollSize, cl_hook_coll_size, 20, 20, 40, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Width of your own hook collision line")
+MACRO_CONFIG_INT(ClHookCollSize, cl_hook_coll_size, 0, 0, 20, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Width of your own hook collision line")
 MACRO_CONFIG_INT(ClHookCollSizeOther, cl_hook_coll_size_other, 0, 0, 20, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Width of others' hook collision line")
 MACRO_CONFIG_INT(ClHookCollAlpha, cl_hook_coll_alpha, 100, 0, 100, CFGFLAG_CLIENT | CFGFLAG_SAVE, "Alpha of hook collision line (0 invisible, 100 fully visible)")
 
